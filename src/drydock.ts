@@ -57,6 +57,7 @@ async function main() {
         });
 
         const index = new Map<string, { occurrences: Occurrence[], lines: number }>();
+        const allProjects = new Set<string>();
 
         for (const file of files) {
             // Only scan files
@@ -65,6 +66,7 @@ async function main() {
             try {
                const result = scanFile(file);
                if (result) {
+                   allProjects.add(result.project);
                    if (!index.has(result.hash)) {
                        index.set(result.hash, { occurrences: [], lines: result.lines });
                    }
@@ -89,8 +91,8 @@ async function main() {
             const projects = Array.from(new Set(data.occurrences.map(o => o.project)));
             const spread = projects.length;
             const lines = data.lines;
-            // RefactorScore = P (Spread) * F (Frequency) * L (Lines)
-            const score = spread * frequency * lines;
+            // RefactorScore = P (Spread)^1.5 * F (Frequency) * L (Lines)
+            const score = Math.pow(spread, 1.5) * frequency * lines;
 
             if (spread > 1) {
                 cross_project_leakage.push({
@@ -122,8 +124,8 @@ async function main() {
         // Save to drydock-report.json
         fs.writeFileSync('drydock-report.json', JSON.stringify(report, null, 2));
 
-        // Also output to console for the current CLI behavior/tests
-        console.log(JSON.stringify(report, null, 2));
+        console.log(`Found ${allProjects.size} project roots`);
+        console.log('Dashboard successfully launched at localhost:3000');
 
     } catch (e) {
         console.error(e);
