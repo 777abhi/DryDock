@@ -33,36 +33,14 @@ export function scanFile(filePath: string): ScanResult | null {
     let normalized = '';
 
     for (const token of tokens) {
-        // Skip whitespace, newlines, comments
-        // Note: 'comment' might need verification if jscpd produces it.
-        // Based on my manual test, I didn't see 'comment' but I saw 'empty' and 'new_line'.
-        // I'll assume 'comment' exists or check for it.
-        // Actually, if I look at my previous output, I had a comment `// this is a comment`.
-        // Let's check if it was in the output.
-        // I'll re-verify the token output for comments if needed, but usually tokenizers have a 'comment' type.
-        // Checking my previous run... I don't see the comment in the output!
-        // Wait, the code had `// this is a comment`.
-        // The output jumped from `start: { line: 4...` to next.
-        // Line 4 in my code: `function add(a, b) {`
-        // Line 5: `// this is a comment`
-        // Line 6: `return a + b;`
-        // The tokens showed `type: "punctuation", "value": "{"` (line 4)
-        // Then `type: "new_line"` (line 4->5)
-        // Then `type: "new_line"` (line 5->6)
-        // So the comment was CONSUMED/IGNORED by `tokenize` implicitly?
-        // Or maybe treated as `empty`?
-        // I see `range` [61, 62] (}) -> [62, 63] (\n).
-        // If the comment is missing, that's great! It means `jscpd` tokenizer (or the underlying Prism/etc) strips comments or I missed it.
-        // I will assume for now I just need to filter `empty` and `new_line`.
-
-        if (token.type === 'empty' || token.type === 'new_line' || token.type === 'comment') {
+        // Skip whitespace, newlines, and comments to normalize code structure
+        if (['empty', 'new_line', 'comment'].includes(token.type)) {
             continue;
         }
 
-        // Normalize identifiers
-        // 'default' seems to be identifiers.
-        // 'function' seems to be function names.
-        if (token.type === 'default' || token.type === 'function') {
+        // Mask identifiers to detect structural clones
+        // 'default' and 'function' are common types for identifiers and function names in @jscpd/tokenizer
+        if (['default', 'function'].includes(token.type)) {
             normalized += '__ID__';
         } else {
             normalized += token.value;

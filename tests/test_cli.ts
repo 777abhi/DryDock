@@ -31,52 +31,63 @@ function run() {
 
     try {
         // We pass fixtureRoot to the CLI.
-        // Note: ts-node execution needs to be careful about cwd.
-        // We'll run from repo root.
+        const reportPath = 'drydock-report.json';
+        if (fs.existsSync(reportPath)) {
+            fs.unlinkSync(reportPath);
+        }
+
         const cmd = `npx ts-node src/drydock.ts ${fixtureRoot}`;
         const output = execSync(cmd, { encoding: 'utf-8', cwd: process.cwd() });
-        const report = JSON.parse(output);
 
-        // console.log('CLI Output:', JSON.stringify(report, null, 2));
+        // Check if report file exists
+        if (!fs.existsSync(reportPath)) {
+            console.error('FAIL: drydock-report.json was not created.');
+            process.exit(1);
+        }
 
-        // Check for duplicate hash
-        const duplicateEntry = report.find((v: any) => v.occurrences.length === 2);
+        const report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
 
-        if (duplicateEntry) {
-            console.log('PASS: Found duplicate entry.');
-            const projects = duplicateEntry.occurrences.map((o: any) => o.project).sort();
+        // Verify schema structure
+        if (!report.internal_duplicates || !report.cross_project_leakage) {
+            console.error('FAIL: Report schema mismatch.');
+            process.exit(1);
+        }
+
+        // Check for leakage between projA and projB
+        const leakageEntry = report.cross_project_leakage.find((v: any) => v.frequency === 2);
+
+        if (leakageEntry) {
+            console.log('PASS: Found leakage entry.');
+            const projects = leakageEntry.projects.sort();
             if (JSON.stringify(projects) === JSON.stringify(['projA', 'projB'])) {
-                console.log('PASS: Projects identified correctly.');
+                console.log('PASS: Projects in leakage identified correctly.');
             } else {
-                console.error('FAIL: Projects mismatch:', projects);
+                console.error('FAIL: Leakage projects mismatch:', projects);
                 process.exit(1);
             }
 
             // Verify RefactorScore components
-            if (duplicateEntry.spread === 2 && duplicateEntry.frequency === 2 && duplicateEntry.isLibraryCandidate === true) {
-                console.log('PASS: RefactorScore metrics for duplicate correct.');
+            if (leakageEntry.spread === 2 && leakageEntry.frequency === 2) {
+                console.log('PASS: Leakage metrics correct.');
             } else {
-                console.error('FAIL: RefactorScore metrics mismatch:', duplicateEntry);
+                console.error('FAIL: Leakage metrics mismatch:', leakageEntry);
                 process.exit(1);
             }
         } else {
-            console.error('FAIL: No duplicate entry found.');
+            console.error('FAIL: No leakage entry found.');
             process.exit(1);
         }
 
-        // Check unique
-        const uniqueEntry = report.find((v: any) => v.occurrences.length === 1 && v.occurrences[0].project === 'projC');
-        if (uniqueEntry) {
-            console.log('PASS: Found unique entry.');
-            if (uniqueEntry.spread === 1 && uniqueEntry.isLibraryCandidate === false) {
-                console.log('PASS: RefactorScore metrics for unique correct.');
-            } else {
-                console.error('FAIL: RefactorScore metrics mismatch for unique:', uniqueEntry);
-                process.exit(1);
-            }
+        // Unique entries (frequency 1) should NOT be in the report
+        const totalEntries = report.internal_duplicates.length + report.cross_project_leakage.length;
+        const uniqueInInternal = report.internal_duplicates.some((v: any) => v.frequency === 1);
+        const uniqueInLeakage = report.cross_project_leakage.some((v: any) => v.frequency === 1);
+
+        if (uniqueInInternal || uniqueInLeakage) {
+            console.error('FAIL: Unique entries (frequency=1) should be filtered out.');
+            process.exit(1);
         } else {
-            console.error('FAIL: Unique entry for projC not found.');
-             process.exit(1);
+            console.log('PASS: Unique entries correctly filtered out.');
         }
 
     } catch (e) {
