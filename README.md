@@ -2,6 +2,16 @@
 
 DryDock is a utility for detecting code duplication across repositories.
 
+## Features
+
+- **Cross-Project & Internal Duplication Detection:** Scans multiple directories to identify code duplicated across different projects vs. within the same project.
+- **Smart Code Normalization:** Uses `@jscpd/tokenizer` to ignore whitespace, comments, and variable names, focusing on structural similarity.
+- **RefactorScore Algorithm:** Prioritizes technical debt by calculating a score based on Spread (cross-project impact), Frequency, and Line count.
+- **Interactive Dashboard:** A built-in web-based dashboard (port 3000) visualizing the "Leakage Matrix" and detailed clone lists.
+- **Project Root Detection:** Automatically identifies project boundaries using `package.json`, `go.mod`, or `.git`.
+- **CLI Support:** Simple command-line interface with file globbing and dashboard launch control (`--open`).
+- **JSON Reporting:** Outputs detailed analysis to `drydock-report.json`.
+
 ## Verifying the Installation
 
 To verify DryDock is correctly identifying cross-project leakage:
@@ -24,3 +34,28 @@ Here is an example of the DryDock dashboard visualizing the cross-project leakag
 The dashboard highlights:
 - A high **RefactorScore** for the duplicated `duplicate()` function.
 - A **Leakage Matrix** showing the connection between `app-1` and `app-2`.
+
+## Roadmap: Next 20 Features
+
+The following features are planned to further improve the utility:
+
+1. **Configurable Ignore Patterns:** Support `.drydockignore` to exclude specific files or directories.
+2. **Code Preview in Dashboard:** View the actual source code side-by-side for identified clones.
+3. **CI/CD Integration:** Add exit codes and failure thresholds for build pipeline integration.
+4. **Custom Thresholds:** Allow CLI flags to set minimum lines or token count for detection.
+5. **Git Blame Integration:** Show the author and commit date for duplicated code blocks.
+6. **Export to Formats:** Support export to HTML (static), CSV, and JUnit XML.
+7. **Historical Analysis:** Track duplication trends over time by comparing reports.
+8. **Clone Diff View:** Visual highlight of differences (if any) in structural clones.
+9. **Language Agnostic Extensions:** Easier plugin system for adding support for more languages.
+10. **Parallel Processing:** Multi-threaded scanning for large repositories to improve performance.
+11. **Interactive CLI Mode:** TUI (Text User Interface) for exploring results in the terminal.
+12. **IDE Extensions:** Plugins for VS Code and IntelliJ to highlight duplicates in the editor.
+13. **Dependency Analysis:** Flag duplicates that match known open-source libraries.
+14. **Auto-Refactor Suggestions:** Generate boilerplate for extracting duplicates into a shared library.
+15. **Graph Visualization:** Node-link diagram showing dependency relationships between projects based on leaks.
+16. **Whitelisting:** Ability to mark specific duplicates as "accepted" or "false positive".
+17. **Docker Support:** Official Docker image for easy deployment in containerized environments.
+18. **REST API:** Expose the dashboard server as an API for external tools.
+19. **Slack/Teams Notifications:** Webhooks to notify teams when new cross-project leaks are detected.
+20. **Monorepo Support:** Specialized optimization and logic for massive monorepos (e.g., Lerna, Nx, Turborepo).
