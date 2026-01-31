@@ -8,6 +8,30 @@ interface Occurrence {
     file: string;
 }
 
+interface InternalDuplicate {
+    hash: string;
+    lines: number;
+    frequency: number;
+    score: number;
+    project: string;
+    occurrences: string[];
+}
+
+interface CrossProjectLeakage {
+    hash: string;
+    lines: number;
+    frequency: number;
+    spread: number;
+    score: number;
+    projects: string[];
+    occurrences: Occurrence[];
+}
+
+interface DryDockReport {
+    internal_duplicates: InternalDuplicate[];
+    cross_project_leakage: CrossProjectLeakage[];
+}
+
 async function main() {
     const args = process.argv.slice(2);
     if (args.length === 0) {
@@ -54,29 +78,51 @@ async function main() {
             }
         }
 
-        const report = Array.from(index.entries()).map(([hash, data]) => {
+        const internal_duplicates: InternalDuplicate[] = [];
+        const cross_project_leakage: CrossProjectLeakage[] = [];
+
+        for (const [hash, data] of index.entries()) {
             const frequency = data.occurrences.length;
-            const projects = new Set(data.occurrences.map(o => o.project));
-            const spread = projects.size;
+            // Only report duplicates
+            if (frequency <= 1) continue;
+
+            const projects = Array.from(new Set(data.occurrences.map(o => o.project)));
+            const spread = projects.length;
             const lines = data.lines;
             // RefactorScore = P (Spread) * F (Frequency) * L (Lines)
             const score = spread * frequency * lines;
-            const isLibraryCandidate = spread > 1;
 
-            return {
-                hash,
-                lines,
-                frequency,
-                spread,
-                score,
-                isLibraryCandidate,
-                occurrences: data.occurrences
-            };
-        });
+            if (spread > 1) {
+                cross_project_leakage.push({
+                    hash,
+                    lines,
+                    frequency,
+                    spread,
+                    score,
+                    projects,
+                    occurrences: data.occurrences
+                });
+            } else {
+                internal_duplicates.push({
+                    hash,
+                    lines,
+                    frequency,
+                    score,
+                    project: projects[0],
+                    occurrences: data.occurrences.map(o => o.file)
+                });
+            }
+        }
 
-        // Rank clones by RefactorScore descending
-        report.sort((a, b) => b.score - a.score);
+        const report: DryDockReport = {
+            internal_duplicates: internal_duplicates.sort((a, b) => b.score - a.score),
+            cross_project_leakage: cross_project_leakage.sort((a, b) => b.score - a.score)
+        };
 
+        // Save to drydock-report.json
+        fs.writeFileSync('drydock-report.json', JSON.stringify(report, null, 2));
+
+        // Also output to console for the current CLI behavior/tests
         console.log(JSON.stringify(report, null, 2));
 
     } catch (e) {
