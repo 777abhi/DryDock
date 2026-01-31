@@ -1,0 +1,34 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/drydock.js",
+  "bin": {
+    "drydock": "dist/drydock.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/drydock.ts",
+    "test": "ts-node tests/test_identifier.ts && ts-node tests/test_scanner.ts && ts-node tests/test_cli.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/777abhi/DryDock.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/777abhi/DryDock/issues"
+  },
+  "homepage": "https://github.com/777abhi/DryDock#readme",
+  "dependencies": {
+    "@jscpd/tokenizer": "^4.0.4",
+    "@types/node": "^25.1.0",
+    "fast-glob": "^3.3.3",
+    "jscpd": "^4.0.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
