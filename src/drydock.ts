@@ -6,6 +6,8 @@ import fg from 'fast-glob';
 import { scanFile } from './scanner';
 import { getIgnorePatterns } from './utils';
 import { getGitInfo } from './git-utils';
+import { DryDockReport, InternalDuplicate, CrossProjectLeakage, Occurrence } from './types';
+import { exportToCSV, exportToJUnit, exportToHTML } from './reporter';
 
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -216,37 +218,6 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-interface Occurrence {
-    project: string;
-    file: string;
-    author?: string;
-    date?: string;
-}
-
-interface InternalDuplicate {
-    hash: string;
-    lines: number;
-    frequency: number;
-    score: number;
-    project: string;
-    occurrences: string[];
-}
-
-interface CrossProjectLeakage {
-    hash: string;
-    lines: number;
-    frequency: number;
-    spread: number;
-    score: number;
-    projects: string[];
-    occurrences: Occurrence[];
-}
-
-interface DryDockReport {
-    internal_duplicates: InternalDuplicate[];
-    cross_project_leakage: CrossProjectLeakage[];
-}
-
 async function main() {
     const args = process.argv.slice(2);
     const shouldOpen = args.includes('--open');
@@ -260,16 +231,25 @@ async function main() {
 
     const failOnLeaks = args.includes('--fail');
 
+    // Parse --formats
+    let formats = ['json'];
+    const formatsIndex = args.indexOf('--formats');
+    if (formatsIndex !== -1 && args[formatsIndex + 1]) {
+        formats = args[formatsIndex + 1].split(',').map(f => f.trim().toLowerCase());
+    }
+
     const scanArgs = args.filter((arg, index) => {
         if (arg === '--open') return false;
         if (arg === '--fail') return false;
         if (arg === '--min-lines') return false;
         if (index > 0 && args[index - 1] === '--min-lines') return false;
+        if (arg === '--formats') return false;
+        if (index > 0 && args[index - 1] === '--formats') return false;
         return true;
     });
 
     if (scanArgs.length === 0) {
-        console.error('Usage: drydock <files_or_directories> [--open] [--min-lines <number>] [--fail]');
+        console.error('Usage: drydock <files_or_directories> [--open] [--min-lines <number>] [--fail] [--formats <json,html,csv,junit>]');
         process.exit(1);
     }
 
@@ -376,8 +356,22 @@ async function main() {
             cross_project_leakage: cross_project_leakage.sort((a, b) => b.score - a.score)
         };
 
-        // Save to drydock-report.json
-        fs.writeFileSync('drydock-report.json', JSON.stringify(report, null, 2));
+        // Save reports based on formats
+        if (formats.includes('json')) {
+            fs.writeFileSync('drydock-report.json', JSON.stringify(report, null, 2));
+        }
+
+        if (formats.includes('csv')) {
+            fs.writeFileSync('drydock-report.csv', exportToCSV(report));
+        }
+
+        if (formats.includes('junit')) {
+            fs.writeFileSync('drydock-report.xml', exportToJUnit(report));
+        }
+
+        if (formats.includes('html')) {
+            fs.writeFileSync('drydock-report.html', exportToHTML(report, DASHBOARD_HTML));
+        }
 
         console.log(`Found ${allProjects.size} project roots`);
 
