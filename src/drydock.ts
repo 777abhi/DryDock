@@ -310,7 +310,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
              const proj2 = occ2.project || item.project;
 
              try {
-                 const diffResponse = await fetch(`/api/diff?file1=${encodeURIComponent(file1)}&file2=${encodeURIComponent(file2)}`);
+                 const diffResponse = await fetch('\/api\/diff?file1=' + encodeURIComponent(file1) + '&file2=' + encodeURIComponent(file2));
                  const diff = await diffResponse.json();
 
                  let formattedCode1 = '';
@@ -322,22 +322,22 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
                      const escapedValue = escapeHtml(part.value);
 
                      if (part.added) {
-                         formattedCode2 += \`<span class="\${color}">\${escapedValue}</span>\`;
+                         formattedCode2 += '\<span class="' + color + '"\>' + escapedValue + '\<\/span\>';
                      } else if (part.removed) {
-                         formattedCode1 += \`<span class="\${color}">\${escapedValue}</span>\`;
+                         formattedCode1 += '\<span class="' + color + '"\>' + escapedValue + '\<\/span\>';
                      } else {
-                         formattedCode1 += \`<span class="\${color}">\${escapedValue}</span>\`;
-                         formattedCode2 += \`<span class="\${color}">\${escapedValue}</span>\`;
+                         formattedCode1 += '\<span class="' + color + '"\>' + escapedValue + '\<\/span\>';
+                         formattedCode2 += '\<span class="' + color + '"\>' + escapedValue + '\<\/span\>';
                      }
                  });
 
                  content.innerHTML = \`
                     <div class="flex flex-col h-full overflow-hidden border rounded">
-                        <div class="bg-gray-100 p-2 border-b font-mono text-sm font-semibold">${escapeHtml(file1)} (${escapeHtml(proj1)})</div>
+                        <div class="bg-gray-100 p-2 border-b font-mono text-sm font-semibold">\${escapeHtml(file1)} (\${escapeHtml(proj1)})</div>
                         <pre class="flex-1 overflow-auto p-4 text-xs bg-gray-50 whitespace-pre-wrap"><code>\${formattedCode1}</code></pre>
                     </div>
                     <div class="flex flex-col h-full overflow-hidden border rounded">
-                        <div class="bg-gray-100 p-2 border-b font-mono text-sm font-semibold">${escapeHtml(file2)} (${escapeHtml(proj2)})</div>
+                        <div class="bg-gray-100 p-2 border-b font-mono text-sm font-semibold">\${escapeHtml(file2)} (\${escapeHtml(proj2)})</div>
                         <pre class="flex-1 overflow-auto p-4 text-xs bg-gray-50 whitespace-pre-wrap"><code>\${formattedCode2}</code></pre>
                     </div>
                  \`;

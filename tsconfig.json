@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    "lib": ["es2020", "dom"],
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "downlevelIteration": true,
     "outDir": "./dist"
   },
   "ts-node": {
