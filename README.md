@@ -77,6 +77,7 @@ You can point to different project folder locations using relative or absolute p
 | `--whitelist <file>` | Path to a file containing duplicate hashes to ignore (defaults to `.drydockwhitelist`). |
 | `--compare <file>` | Path to a previous `drydock-report.json` to perform a trend analysis on new, resolved, and remaining leaks. |
 | `--webhook <url>` | URL to send a JSON POST request with the scan summary (e.g., for Slack/Teams integration). |
+| `--language <.ext=format>` | Dynamically register custom file extensions and their corresponding tokenizer formats (e.g., `--language .ex=elixir`). |
 
 ## Configuration
 
@@ -184,7 +185,7 @@ The following features are planned to further improve the utility:
 6. [x] **Export to Formats:** Support export to HTML (static), CSV, and JUnit XML.
 7. [x] **Historical Analysis:** Track duplication trends over time by comparing reports.
 8. [x] **Clone Diff View:** Visual highlight of differences (if any) in structural clones.
-9. **Language Agnostic Extensions:** Easier plugin system for adding support for more languages.
+9. [x] **Language Agnostic Extensions:** Easier plugin system for adding support for more languages dynamically.
 10. **Parallel Processing:** Multi-threaded scanning for large repositories to improve performance.
 11. **Interactive CLI Mode:** TUI (Text User Interface) for exploring results in the terminal.
 12. **IDE Extensions:** Plugins for VS Code and IntelliJ to highlight duplicates in the editor.
@@ -203,3 +204,4 @@ The following features are planned to further improve the utility:
 25. **Export to PDF:** Allow exporting the current dashboard and leakage statistics to a PDF format to send reports directly to management or executives without requiring server access.
 26. **Automated Actionable PR Comments:** Automatically post comments on Pull Requests for any new structural clones introduced in a commit.
 27. **Semantic Refactoring Prompts:** Generate refactoring instructions for developers based on the structural diff to make consolidating code easier.
+28. **Real-time Code Quality Telemetry:** Stream duplication data continuously to Datadog or Prometheus.
