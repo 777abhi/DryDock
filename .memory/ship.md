@@ -32,3 +32,8 @@ Constraint: Ensure the payload is formatted to be universally compatible with co
 Decision: Add a diff viewer using the `diff` package to visualize how structural clones differ (e.g., changes in variable names or comments). Exposed via `/api/diff`.
 Reasoning: Since DryDock detects structural clones and not just exact string matches, users need to clearly see *how* two clones differ textually in order to effectively consolidate them. Extracting this to `DiffService` keeps `src/drydock.ts` cleaner.
 Constraint: Ensure directory traversal is prevented when fetching files for the diff.
+
+## 2026-03-07 - [Language Agnostic Extensions]
+Decision: Introduce a singleton `LanguageRegistry` to handle file extension to tokenizer format mapping dynamically.
+Reasoning: The hardcoded map inside the scanner made it impossible to support new or proprietary languages without modifying the core codebase. The registry allows runtime extension via CLI, making the tool truly language agnostic.
+Constraint: Ensure the CLI correctly ignores malformed `--language` flag inputs and safely defaults to 'javascript' to prevent scan failures.

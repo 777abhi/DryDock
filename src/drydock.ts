@@ -12,6 +12,7 @@ import { exportToCSV, exportToJUnit, exportToHTML } from './reporter';
 import { analyzeTrend, TrendResult } from './trend';
 import { WebhookNotifier } from './notifier';
 import { DiffService } from './diff-viewer';
+import { LanguageRegistry } from './language-registry';
 
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -552,6 +553,21 @@ async function main() {
     let cliIgnore: string[] = [];
     if (ignoreIndex !== -1 && args[ignoreIndex + 1]) {
         cliIgnore = [args[ignoreIndex + 1]];
+    }
+
+    // Parse language extensions dynamically
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--language' && i + 1 < args.length) {
+            const langArg = args[i + 1];
+            const parts = langArg.split('=');
+            if (parts.length === 2) {
+                LanguageRegistry.getInstance().registerExtension(parts[0], parts[1]);
+            } else {
+                console.warn(`Invalid format for --language flag: ${langArg}. Expected format: .ext=format`);
+            }
+            // Skip the next argument
+            i++;
+        }
     }
 
     // Parse formats

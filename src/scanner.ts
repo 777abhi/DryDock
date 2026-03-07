@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { tokenize } from '@jscpd/tokenizer';
 import { identifyProject } from './project-identifier';
+import { LanguageRegistry } from './language-registry';
 
 export interface ScanResult {
     hash: string;
@@ -33,29 +34,7 @@ export function scanFile(filePath: string): ScanResult | null {
     // Default to 'unknown' format if detection fails, though jscpd usually handles extensions well.
     // If format is unknown, jscpd might not tokenize correctly.
     const ext = path.extname(filePath).toLowerCase();
-    const formatMap: { [key: string]: string } = {
-        '.ts': 'typescript',
-        '.tsx': 'typescript',
-        '.js': 'javascript',
-        '.jsx': 'javascript',
-        '.css': 'css',
-        '.scss': 'scss',
-        '.less': 'less',
-        '.html': 'html',
-        '.py': 'python',
-        '.java': 'java',
-        '.c': 'c',
-        '.cpp': 'cpp',
-        '.cs': 'csharp',
-        '.go': 'go',
-        '.php': 'php',
-        '.rb': 'ruby',
-        '.rs': 'rust',
-        '.swift': 'swift',
-        '.kt': 'kotlin',
-        '.scala': 'scala',
-    };
-    const format = formatMap[ext] || 'javascript';
+    const format = LanguageRegistry.getInstance().getFormat(ext);
 
     let tokens: any[];
     try {
