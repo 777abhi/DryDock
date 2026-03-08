@@ -10,6 +10,7 @@ export interface ScanResult {
     project: string;
     path: string;
     lines: number;
+    complexity: number;
 }
 
 export function scanFile(filePath: string): ScanResult | null {
@@ -49,8 +50,16 @@ export function scanFile(filePath: string): ScanResult | null {
     }
 
     let normalized = '';
+    let complexity = 1;
 
     for (const token of tokens) {
+        if (token.type === 'keyword' && ['if', 'for', 'while', 'case', 'catch'].includes(token.value)) {
+            complexity++;
+        }
+        if (token.type === 'operator' && ['||', '&&', '?'].includes(token.value)) {
+            complexity++;
+        }
+
         // Skip whitespace, newlines, and comments to normalize code structure
         if (['empty', 'new_line', 'comment'].includes(token.type)) {
             continue;
@@ -78,6 +87,7 @@ export function scanFile(filePath: string): ScanResult | null {
         hash,
         project,
         path: filePath,
-        lines
+        lines,
+        complexity
     };
 }

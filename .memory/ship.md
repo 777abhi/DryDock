@@ -37,3 +37,8 @@ Constraint: Ensure directory traversal is prevented when fetching files for the 
 Decision: Introduce a singleton `LanguageRegistry` to handle file extension to tokenizer format mapping dynamically.
 Reasoning: The hardcoded map inside the scanner made it impossible to support new or proprietary languages without modifying the core codebase. The registry allows runtime extension via CLI, making the tool truly language agnostic.
 Constraint: Ensure the CLI correctly ignores malformed `--language` flag inputs and safely defaults to 'javascript' to prevent scan failures.
+
+## 2026-03-08 - [Cyclomatic Complexity Integration]
+Decision: Introduce Cyclomatic Complexity calculation within `scanFile` and propagate it to `DryDockReport` and Dashboard UI.
+Reasoning: By observing branching keywords and operators directly via token stream parsing (`@jscpd/tokenizer`), we can calculate complexity and augment clone reports to guide deeper refactoring, providing another useful metric alongside lines and frequency.
+Constraint: Complexity is computed strictly on a per-file basis during token traversal to ensure minimal performance overhead.

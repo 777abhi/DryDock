@@ -275,7 +275,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
                             \${item.lines} lines shared across <span class="text-blue-600">\${item.projects.map(p => escapeHtml(p)).join(', ')}</span>
                         </div>
                         <div class="text-sm text-gray-600 mt-2">
-                             Found in: \${item.occurrences.map(o => {
+                             Complexity: <span class="font-bold text-yellow-600">\${item.complexity}</span> | Found in: \${item.occurrences.map(o => {
                                  const meta = o.author ? \` title="Last modified by \${escapeHtml(o.author)} on \${o.date}"\` : '';
                                  return \`<code class="bg-gray-100 px-1 py-0.5 rounded text-xs cursor-help"\${meta}>\${escapeHtml(o.file)}</code>\`;
                              }).join(', ')}
@@ -442,7 +442,7 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
     });
     console.log(`Found ${files.length} files in ${(Date.now() - searchStart) / 1000}s`);
 
-    const index = new Map<string, { occurrences: Occurrence[], lines: number }>();
+    const index = new Map<string, { occurrences: Occurrence[], lines: number, complexity: number }>();
     const allProjects = new Set<string>();
 
     let processed = 0;
@@ -468,7 +468,7 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
 
                 allProjects.add(result.project);
                 if (!index.has(result.hash)) {
-                    index.set(result.hash, { occurrences: [], lines: result.lines });
+                    index.set(result.hash, { occurrences: [], lines: result.lines, complexity: result.complexity });
                 }
                 index.get(result.hash)!.occurrences.push({
                     project: result.project,
@@ -503,6 +503,7 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
         const projects = Array.from(new Set(enrichedOccurrences.map(o => o.project)));
         const spread = projects.length;
         const lines = data.lines;
+        const complexity = data.complexity;
         // RefactorScore = P (Spread)^1.5 * F (Frequency) * L (Lines)
         const score = Math.pow(spread, 1.5) * frequency * lines;
 
@@ -510,6 +511,7 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
             cross_project_leakage.push({
                 hash,
                 lines,
+                complexity,
                 frequency,
                 spread,
                 score,
@@ -520,6 +522,7 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
             internal_duplicates.push({
                 hash,
                 lines,
+                complexity,
                 frequency,
                 score,
                 project: projects[0],

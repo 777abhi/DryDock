@@ -8,6 +8,7 @@ export interface Occurrence {
 export interface InternalDuplicate {
     hash: string;
     lines: number;
+    complexity: number;
     frequency: number;
     score: number;
     project: string;
@@ -17,6 +18,7 @@ export interface InternalDuplicate {
 export interface CrossProjectLeakage {
     hash: string;
     lines: number;
+    complexity: number;
     frequency: number;
     spread: number;
     score: number;

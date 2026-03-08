@@ -26,8 +26,22 @@ function sum(x, y) {
 }
 `;
 
+    const complexCode = `
+function complex(a, b) {
+    if (a > b || b < 0) {
+        for (let i = 0; i < 10; i++) {
+            console.log(i);
+        }
+    } else if (a === b) {
+        while(true) { break; }
+    }
+    return a ? b : a;
+}
+`;
+
     fs.writeFileSync(path.join(tempRoot, 'file1.ts'), code1);
     fs.writeFileSync(path.join(tempRoot, 'file2.ts'), code2);
+    fs.writeFileSync(path.join(tempRoot, 'file_complex.ts'), complexCode);
 }
 
 function runTests() {
@@ -35,8 +49,9 @@ function runTests() {
 
     const result1 = scanFile(path.join(tempRoot, 'file1.ts'));
     const result2 = scanFile(path.join(tempRoot, 'file2.ts'));
+    const resultComplex = scanFile(path.join(tempRoot, 'file_complex.ts'));
 
-    if (!result1 || !result2) {
+    if (!result1 || !result2 || !resultComplex) {
         console.error('FAIL: scanFile returned null');
         process.exit(1);
     }
@@ -57,6 +72,30 @@ function runTests() {
     } else {
         console.error(`FAIL: Project ID mismatch. Got ${result1.project}, expected temp_scanner`);
          process.exit(1);
+    }
+
+    // Verify complexity
+    if (result1.complexity === 1) {
+        console.log('PASS: Simple file has complexity 1.');
+    } else {
+        console.error(`FAIL: Simple file has complexity ${result1.complexity}, expected 1.`);
+        process.exit(1);
+    }
+
+    // complexCode complexity calculation:
+    // Base: 1
+    // if: +1
+    // ||: +1
+    // for: +1
+    // else if (if): +1
+    // while: +1
+    // ?: +1
+    // Total: 7
+    if (resultComplex.complexity === 7) {
+        console.log('PASS: Complex file has complexity 7.');
+    } else {
+        console.error(`FAIL: Complex file has complexity ${resultComplex.complexity}, expected 7.`);
+        process.exit(1);
     }
 
     // Cleanup
