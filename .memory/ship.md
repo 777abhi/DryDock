@@ -42,3 +42,8 @@ Constraint: Ensure the CLI correctly ignores malformed `--language` flag inputs 
 Decision: Introduce Cyclomatic Complexity calculation within `scanFile` and propagate it to `DryDockReport` and Dashboard UI.
 Reasoning: By observing branching keywords and operators directly via token stream parsing (`@jscpd/tokenizer`), we can calculate complexity and augment clone reports to guide deeper refactoring, providing another useful metric alongside lines and frequency.
 Constraint: Complexity is computed strictly on a per-file basis during token traversal to ensure minimal performance overhead.
+
+## 2026-03-09 - [Real-time Code Quality Telemetry]
+Decision: Implement TelemetryExporter and transition monolithic `http.createServer` if/else logic into a mapped `routes` dictionary.
+Reasoning: To support observability (#28), a `/metrics` endpoint serving Prometheus text format was needed. Adding this exposed the fragility and unmaintainability of the existing server routing. Evolving to a dictionary-based route handler elegantly decouples endpoints, obeying Open/Closed principles for future API additions.
+Constraint: Ensure all existing dashboard endpoints (like `/api/diff` and `/api/code`) map correctly to the new `RouteHandler` signature, which now explicitly parses and provides `url.URL`.
