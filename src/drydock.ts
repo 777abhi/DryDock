@@ -13,6 +13,7 @@ import { analyzeTrend, TrendResult } from './trend';
 import { WebhookNotifier } from './notifier';
 import { DiffService } from './diff-viewer';
 import { LanguageRegistry } from './language-registry';
+import { TelemetryExporter } from './telemetry';
 
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -707,176 +708,204 @@ async function main() {
 
     if (shouldOpen || scanArgs.length === 0) {
         const initialPort = process.env.PORT !== undefined ? parseInt(process.env.PORT, 10) : 3000;
-        const server = http.createServer(async (req, res) => {
-            // ... (keep existing request handling) ...
-            const actualPort = (server.address() as any)?.port || initialPort;
-            const parsedUrl = new URL(req.url || '', `http://localhost:${actualPort}`);
 
-            if (parsedUrl.pathname === '/') {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(DASHBOARD_HTML);
-            } else if (parsedUrl.pathname === '/api/data') {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(currentReport || { internal_duplicates: [], cross_project_leakage: [] }));
-            } else if (parsedUrl.pathname === '/api/trend') {
-                if (currentTrendData) {
+        type RouteHandler = (req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.URL) => Promise<void> | void;
+
+        const routes: Record<string, Record<string, RouteHandler>> = {
+            'GET': {
+                '/': (req, res) => {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(DASHBOARD_HTML);
+                },
+                '/api/data': (req, res) => {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify(currentTrendData));
-                } else {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: 'No trend data available' }));
-                }
-            } else if (parsedUrl.pathname === '/api/scan' && req.method === 'POST') {
-                let body = '';
-                req.on('data', chunk => body += chunk);
-                req.on('end', async () => {
-                    try {
-                        const { paths } = JSON.parse(body);
-                        if (paths && Array.isArray(paths)) {
-                            console.log('Triggering scan for:', paths);
-                            currentTrendData = null; // Clear old trend data on fresh scan
-                            currentReport = await executeScan(paths, currentCliOptions);
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify(currentReport));
-                        } else {
-                            res.writeHead(400);
-                            res.end('Invalid paths');
-                        }
-                    } catch (e: any) {
-                        if (e.message === 'Scan cancelled') {
-                            res.writeHead(400);
-                            res.end(JSON.stringify({ error: 'Scan cancelled' }));
-                        } else {
-                            console.error('Scan API error:', e);
-                            res.writeHead(500);
-                            res.end('Scan error');
-                        }
+                    res.end(JSON.stringify(currentReport || { internal_duplicates: [], cross_project_leakage: [] }));
+                },
+                '/api/trend': (req, res) => {
+                    if (currentTrendData) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(currentTrendData));
+                    } else {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'No trend data available' }));
                     }
-                });
-            } else if (parsedUrl.pathname === '/api/cancel' && req.method === 'POST') {
-                shouldCancel = true;
-                res.writeHead(200);
-                res.end('Cancellation requested');
-            } else if (parsedUrl.pathname === '/api/browse') {
-                // macOS specific folder picker
-                if (process.platform === 'darwin') {
-                    exec(`osascript -e 'Tell application "System Events" to display dialog "Select a repository folder" default answer "" with icon note buttons {"Cancel", "Choose"} default button "Choose"' -e 'set the item_path to POSIX path of (choose folder with prompt "Select a repository folder")' -e 'return item_path'`, (err, stdout) => {
+                },
+                '/api/browse': (req, res) => {
+                    if (process.platform === 'darwin') {
+                        exec(`osascript -e 'Tell application "System Events" to display dialog "Select a repository folder" default answer "" with icon note buttons {"Cancel", "Choose"} default button "Choose"' -e 'set the item_path to POSIX path of (choose folder with prompt "Select a repository folder")' -e 'return item_path'`, (err, stdout) => {
+                            if (err) {
+                                res.writeHead(500);
+                                res.end('');
+                            } else {
+                                res.writeHead(200, { 'Content-Type': 'text/plain' });
+                                res.end(stdout.trim());
+                            }
+                        });
+                    } else {
+                        res.writeHead(501);
+                        res.end('Not supported on this OS');
+                    }
+                },
+                '/api/diff': (req, res, parsedUrl) => {
+                    let file1Param = parsedUrl.searchParams.get('file1');
+                    let file2Param = parsedUrl.searchParams.get('file2');
+
+                    if (!file1Param || typeof file1Param !== 'string' || !file2Param || typeof file2Param !== 'string') {
+                        res.writeHead(400);
+                        res.end('Missing or invalid file parameters');
+                        return;
+                    }
+
+                    const filePath1 = path.resolve(process.cwd(), file1Param);
+                    const relativePath1 = path.relative(process.cwd(), filePath1);
+                    const filePath2 = path.resolve(process.cwd(), file2Param);
+                    const relativePath2 = path.relative(process.cwd(), filePath2);
+
+                    if (relativePath1.startsWith('..') || path.isAbsolute(relativePath1) ||
+                        relativePath2.startsWith('..') || path.isAbsolute(relativePath2)) {
+                        res.writeHead(403);
+                        res.end('Access denied: File outside of project root');
+                        return;
+                    }
+
+                    const isAllowed1 = currentReport && (
+                        currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath1 || o === relativePath1)) ||
+                        currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath1))
+                    );
+
+                    const isAllowed2 = currentReport && (
+                        currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath2 || o === relativePath2)) ||
+                        currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath2))
+                    );
+
+                    if (!isAllowed1 || !isAllowed2) {
+                        res.writeHead(403);
+                        res.end('Access denied: File not in report');
+                        return;
+                    }
+
+                    if (!fs.existsSync(filePath1) || !fs.existsSync(filePath2)) {
+                        res.writeHead(404);
+                        res.end('File not found');
+                        return;
+                    }
+
+                    try {
+                        const code1 = fs.readFileSync(filePath1, 'utf-8');
+                        const code2 = fs.readFileSync(filePath2, 'utf-8');
+                        const diffService = new DiffService();
+                        const diffResult = diffService.getDiff(code1, code2);
+
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(diffResult));
+                    } catch (err) {
+                        res.writeHead(500);
+                        res.end('Error calculating diff');
+                    }
+                },
+                '/api/code': (req, res, parsedUrl) => {
+                    let fileParam = parsedUrl.searchParams.get('file');
+
+                    if (!fileParam || typeof fileParam !== 'string') {
+                        res.writeHead(400);
+                        res.end('Missing or invalid file parameter');
+                        return;
+                    }
+
+                    const filePath = path.resolve(process.cwd(), fileParam);
+                    const relativePath = path.relative(process.cwd(), filePath);
+
+                    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+                        res.writeHead(403);
+                        res.end('Access denied: File outside of project root');
+                        return;
+                    }
+
+                    const isAllowed = currentReport && (
+                        currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath || o === relativePath)) ||
+                        currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath))
+                    );
+
+                    if (!isAllowed) {
+                        res.writeHead(403);
+                        res.end('Access denied: File not in report');
+                        return;
+                    }
+
+                    if (!fs.existsSync(filePath)) {
+                        res.writeHead(404);
+                        res.end('File not found');
+                        return;
+                    }
+
+                    fs.readFile(filePath, 'utf-8', (err, data) => {
                         if (err) {
                             res.writeHead(500);
-                            res.end('');
+                            res.end('Error reading file');
                         } else {
                             res.writeHead(200, { 'Content-Type': 'text/plain' });
-                            res.end(stdout.trim());
+                            res.end(data);
                         }
                     });
-                } else {
-                    res.writeHead(501);
-                    res.end('Not supported on this OS');
-                }
-            } else if (parsedUrl.pathname === '/api/diff') {
-                let file1Param = parsedUrl.searchParams.get('file1');
-                let file2Param = parsedUrl.searchParams.get('file2');
-
-                if (!file1Param || typeof file1Param !== 'string' || !file2Param || typeof file2Param !== 'string') {
-                    res.writeHead(400);
-                    res.end('Missing or invalid file parameters');
-                    return;
-                }
-
-                const filePath1 = path.resolve(process.cwd(), file1Param);
-                const relativePath1 = path.relative(process.cwd(), filePath1);
-                const filePath2 = path.resolve(process.cwd(), file2Param);
-                const relativePath2 = path.relative(process.cwd(), filePath2);
-
-                if (relativePath1.startsWith('..') || path.isAbsolute(relativePath1) ||
-                    relativePath2.startsWith('..') || path.isAbsolute(relativePath2)) {
-                    res.writeHead(403);
-                    res.end('Access denied: File outside of project root');
-                    return;
-                }
-
-                const isAllowed1 = currentReport && (
-                    currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath1 || o === relativePath1)) ||
-                    currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath1))
-                );
-
-                const isAllowed2 = currentReport && (
-                    currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath2 || o === relativePath2)) ||
-                    currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath2))
-                );
-
-                if (!isAllowed1 || !isAllowed2) {
-                    res.writeHead(403);
-                    res.end('Access denied: File not in report');
-                    return;
-                }
-
-                if (!fs.existsSync(filePath1) || !fs.existsSync(filePath2)) {
-                    res.writeHead(404);
-                    res.end('File not found');
-                    return;
-                }
-
-                try {
-                    const code1 = fs.readFileSync(filePath1, 'utf-8');
-                    const code2 = fs.readFileSync(filePath2, 'utf-8');
-                    const diffService = new DiffService();
-                    const diffResult = diffService.getDiff(code1, code2);
-
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify(diffResult));
-                } catch (err) {
-                    res.writeHead(500);
-                    res.end('Error calculating diff');
-                }
-
-            } else if (parsedUrl.pathname === '/api/code') {
-                let fileParam = parsedUrl.searchParams.get('file');
-
-                if (!fileParam || typeof fileParam !== 'string') {
-                    res.writeHead(400);
-                    res.end('Missing or invalid file parameter');
-                    return;
-                }
-
-                const filePath = path.resolve(process.cwd(), fileParam);
-                const relativePath = path.relative(process.cwd(), filePath);
-
-                // Security check: prevent directory traversal
-                if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-                    res.writeHead(403);
-                    res.end('Access denied: File outside of project root');
-                    return;
-                }
-
-                // Security check: prevent arbitrary file read (IDOR/LFI)
-                // Only allow files that are part of the current report
-                const isAllowed = currentReport && (
-                    currentReport.internal_duplicates.some(d => d.occurrences.some((o: any) => o.file === relativePath || o === relativePath)) ||
-                    currentReport.cross_project_leakage.some(l => l.occurrences.some(o => o.file === relativePath))
-                );
-
-                if (!isAllowed) {
-                    res.writeHead(403);
-                    res.end('Access denied: File not in report');
-                    return;
-                }
-
-                if (!fs.existsSync(filePath)) {
-                    res.writeHead(404);
-                    res.end('File not found');
-                    return;
-                }
-
-                fs.readFile(filePath, 'utf-8', (err, data) => {
-                    if (err) {
-                        res.writeHead(500);
-                        res.end('Error reading file');
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'text/plain' });
-                        res.end(data);
+                },
+                '/metrics': (req, res) => {
+                    if (!currentReport) {
+                        res.writeHead(404);
+                        res.end('No report data available');
+                        return;
                     }
-                });
+                    const exporter = new TelemetryExporter();
+                    const metrics = exporter.exportToPrometheus(currentReport);
+                    res.writeHead(200, { 'Content-Type': 'text/plain' });
+                    res.end(metrics);
+                }
+            },
+            'POST': {
+                '/api/scan': (req, res) => {
+                    let body = '';
+                    req.on('data', chunk => body += chunk);
+                    req.on('end', async () => {
+                        try {
+                            const { paths } = JSON.parse(body);
+                            if (paths && Array.isArray(paths)) {
+                                console.log('Triggering scan for:', paths);
+                                currentTrendData = null; // Clear old trend data on fresh scan
+                                currentReport = await executeScan(paths, currentCliOptions);
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify(currentReport));
+                            } else {
+                                res.writeHead(400);
+                                res.end('Invalid paths');
+                            }
+                        } catch (e: any) {
+                            if (e.message === 'Scan cancelled') {
+                                res.writeHead(400);
+                                res.end(JSON.stringify({ error: 'Scan cancelled' }));
+                            } else {
+                                console.error('Scan API error:', e);
+                                res.writeHead(500);
+                                res.end('Scan error');
+                            }
+                        }
+                    });
+                },
+                '/api/cancel': (req, res) => {
+                    shouldCancel = true;
+                    res.writeHead(200);
+                    res.end('Cancellation requested');
+                }
+            }
+        };
+
+        const server = http.createServer(async (req, res) => {
+            const actualPort = (server.address() as any)?.port || initialPort;
+            const parsedUrl = new URL(req.url || '', `http://localhost:${actualPort}`);
+            const method = req.method || 'GET';
+            const pathname = parsedUrl.pathname;
+
+            const methodRoutes = routes[method];
+            if (methodRoutes && methodRoutes[pathname]) {
+                await methodRoutes[pathname](req, res, parsedUrl);
             } else {
                 res.writeHead(404);
                 res.end('Not found');

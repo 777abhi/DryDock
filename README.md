@@ -204,5 +204,6 @@ The following features are planned to further improve the utility:
 25. **Export to PDF:** Allow exporting the current dashboard and leakage statistics to a PDF format to send reports directly to management or executives without requiring server access.
 26. **Automated Actionable PR Comments:** Automatically post comments on Pull Requests for any new structural clones introduced in a commit.
 27. **Semantic Refactoring Prompts:** Generate refactoring instructions for developers based on the structural diff to make consolidating code easier.
-28. **Real-time Code Quality Telemetry:** Stream duplication data continuously to Datadog or Prometheus.
+28. [x] **Real-time Code Quality Telemetry:** Stream duplication data continuously to Datadog or Prometheus (via `/metrics` endpoint).
 29. **Cross-Language Clone Detection:** Map abstract syntax trees across different languages (e.g. Java to C#) to identify structural patterns that cross language boundaries.
+30. **Automated Library Extraction:** Automatically generate scaffolding for a shared npm/pip/maven package when cross-project leakage exceeds a specific RefactorScore threshold.
