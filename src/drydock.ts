@@ -14,6 +14,8 @@ import { WebhookNotifier } from './notifier';
 import { DiffService } from './diff-viewer';
 import { LanguageRegistry } from './language-registry';
 import { TelemetryExporter } from './telemetry';
+import { Worker } from 'worker_threads';
+import * as os from 'os';
 
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -447,38 +449,80 @@ async function executeScan(paths: string[], options: ScanOptions): Promise<DryDo
     const allProjects = new Set<string>();
 
     let processed = 0;
-    for (const file of files) {
-        if (shouldCancel) {
-            console.log('Scan cancelled by user.');
-            throw new Error('Scan cancelled');
-        }
 
-        // Only scan files
-        if (!fs.statSync(file).isFile()) continue;
+    // Filter out non-files first
+    const validFiles = files.filter(file => fs.statSync(file).isFile());
 
-        processed++;
-        if (processed % 100 === 0) {
-            console.log(`Scanned ${processed}/${files.length} files...`);
-        }
+    const numWorkers = Math.max(1, os.cpus().length - 1);
+    const chunkSize = Math.ceil(validFiles.length / numWorkers);
+    const chunks: string[][] = [];
 
-        try {
-            const result = scanFile(file);
-            if (result) {
-                if (result.lines < options.minLines) continue;
-                if (options.whitelist && options.whitelist.includes(result.hash)) continue;
+    for (let i = 0; i < validFiles.length; i += chunkSize) {
+        chunks.push(validFiles.slice(i, i + chunkSize));
+    }
 
-                allProjects.add(result.project);
-                if (!index.has(result.hash)) {
-                    index.set(result.hash, { occurrences: [], lines: result.lines, complexity: result.complexity });
-                }
-                index.get(result.hash)!.occurrences.push({
-                    project: result.project,
-                    file: path.relative(process.cwd(), file)
-                });
+    const workerPromises = chunks.map(chunk => {
+        return new Promise<void>((resolve, reject) => {
+            if (shouldCancel) {
+                return reject(new Error('Scan cancelled'));
             }
-        } catch (err) {
-            console.warn(`Error scanning ${file}:`, err);
+            const ext = path.extname(__filename);
+            const workerPath = path.join(__dirname, `scanner-worker${ext}`);
+            const isTsNode = process.execArgv.join('').includes('ts-node') || ext === '.ts';
+
+            const workerOptions: any = {
+                workerData: { files: chunk }
+            };
+
+            if (isTsNode && workerPath.endsWith('.ts')) {
+                workerOptions.execArgv = ['-r', 'ts-node/register'];
+            }
+
+            const worker = new Worker(workerPath, workerOptions);
+
+            worker.on('message', (item: any) => {
+                processed++;
+                if (processed % 100 === 0) {
+                    console.log(`Processed ${processed}/${validFiles.length} files...`);
+                }
+
+                if (item.error) {
+                    console.warn(`Error scanning ${item.file}:`, item.error);
+                    return;
+                }
+
+                const result = item.result;
+                if (result) {
+                    if (result.lines < options.minLines) return;
+                    if (options.whitelist && options.whitelist.includes(result.hash)) return;
+
+                    allProjects.add(result.project);
+                    if (!index.has(result.hash)) {
+                        index.set(result.hash, { occurrences: [], lines: result.lines, complexity: result.complexity });
+                    }
+                    index.get(result.hash)!.occurrences.push({
+                        project: result.project,
+                        file: path.relative(process.cwd(), item.file)
+                    });
+                }
+            });
+            worker.on('error', reject);
+            worker.on('exit', (code) => {
+                if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+                else resolve();
+            });
+        });
+    });
+
+    try {
+        await Promise.all(workerPromises);
+    } catch (e: any) {
+        if (e.message === 'Scan cancelled') {
+            console.log('Scan cancelled by user.');
+            throw e;
         }
+        console.error('Worker execution failed:', e);
+        throw e;
     }
 
     console.log(`Found ${allProjects.size} project roots`);

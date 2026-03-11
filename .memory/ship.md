@@ -52,3 +52,8 @@ Constraint: Ensure all existing dashboard endpoints (like `/api/diff` and `/api/
 Decision: Implement `--api-only` flag and inject fully permissive CORS headers into the HTTP server response lifecycle.
 Reasoning: To support external tool integration as per roadmap feature #18, the dashboard server needed to be able to run silently (without an initial scan or opening the dashboard) and handle cross-origin requests. Adding CORS headers centrally in the server handler avoids repetition.
 Constraint: All new endpoints must pass through the main request handler to receive CORS headers automatically.
+
+## 2026-03-11 - [Parallel Processing]
+Decision: Implement Multi-threaded scanning using Node.js `worker_threads` and a chunking mechanism.
+Reasoning: To fulfill roadmap feature #10 "Multi-threaded scanning for large repositories to improve performance." Offloading CPU-bound tasks (tokenisation and hashing) to worker threads significantly reduces execution time on large codebases.
+Constraint: Ensure the worker initialization correctly passes TS-Node execution arguments (`execArgv`) when running in development environments, and robustly handles un-compileable file paths to avoid silent thread failures.
