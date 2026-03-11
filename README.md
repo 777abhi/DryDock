@@ -187,7 +187,7 @@ The following features are planned to further improve the utility:
 7. [x] **Historical Analysis:** Track duplication trends over time by comparing reports.
 8. [x] **Clone Diff View:** Visual highlight of differences (if any) in structural clones.
 9. [x] **Language Agnostic Extensions:** Easier plugin system for adding support for more languages dynamically.
-10. **Parallel Processing:** Multi-threaded scanning for large repositories to improve performance.
+10. [x] **Parallel Processing:** Multi-threaded scanning for large repositories to improve performance.
 11. **Interactive CLI Mode:** TUI (Text User Interface) for exploring results in the terminal.
 12. **IDE Extensions:** Plugins for VS Code and IntelliJ to highlight duplicates in the editor.
 13. **Dependency Analysis:** Flag duplicates that match known open-source libraries.
