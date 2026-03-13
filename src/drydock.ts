@@ -14,6 +14,7 @@ import { WebhookNotifier, ProjectWebhookNotifier } from './notifier';
 import { DiffService } from './diff-viewer';
 import { LanguageRegistry } from './language-registry';
 import { TelemetryExporter } from './telemetry';
+import { executeGraphQL } from './graphql';
 import { Worker } from 'worker_threads';
 import * as os from 'os';
 
@@ -947,6 +948,33 @@ async function main() {
                 }
             },
             'POST': {
+                '/api/graphql': (req, res) => {
+                    let body = '';
+                    req.on('data', chunk => body += chunk);
+                    req.on('end', async () => {
+                        try {
+                            const payload = JSON.parse(body);
+                            const query = payload.query;
+                            const variables = payload.variables;
+
+                            if (!query || typeof query !== 'string') {
+                                res.writeHead(400);
+                                res.end(JSON.stringify({ error: 'Missing or invalid query' }));
+                                return;
+                            }
+
+                            const reportToQuery = currentReport || { internal_duplicates: [], cross_project_leakage: [] };
+                            const result = await executeGraphQL(reportToQuery, query, variables);
+
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify(result));
+                        } catch (e: any) {
+                            console.error('GraphQL API error:', e);
+                            res.writeHead(400);
+                            res.end(JSON.stringify({ error: 'Bad request or invalid GraphQL format' }));
+                        }
+                    });
+                },
                 '/api/scan': (req, res) => {
                     let body = '';
                     req.on('data', chunk => body += chunk);

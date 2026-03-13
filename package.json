@@ -9,7 +9,7 @@
   "scripts": {
     "start": "chmod +x ./setup_real_world_example.sh && ./setup_real_world_example.sh && ts-node src/drydock.ts scan mock-repos/inventory-service mock-repos/order-service --open",
     "dev": "ts-node src/drydock.ts scan . --ignore mock-repos --open",
-    "test": "ts-node tests/test_identifier.ts && ts-node tests/test_scanner.ts && ts-node tests/test_scanner_edge_cases.ts && ts-node tests/test_cli.ts && ts-node tests/test_whitelist.ts && ts-node tests/test_trend.ts && ts-node tests/test_server_port.ts && ts-node tests/test_notifier.ts && ts-node tests/test_project_notifier.ts && ts-node tests/test_language_registry.ts && ts-node tests/test_telemetry.ts && ts-node tests/test_api.ts"
+    "test": "ts-node tests/test_identifier.ts && ts-node tests/test_scanner.ts && ts-node tests/test_scanner_edge_cases.ts && ts-node tests/test_cli.ts && ts-node tests/test_whitelist.ts && ts-node tests/test_trend.ts && ts-node tests/test_server_port.ts && ts-node tests/test_notifier.ts && ts-node tests/test_project_notifier.ts && ts-node tests/test_language_registry.ts && ts-node tests/test_telemetry.ts && ts-node tests/test_api.ts && ts-node tests/test_graphql.ts"
   },
   "repository": {
     "type": "git",
@@ -27,6 +27,7 @@
     "@jscpd/tokenizer": "^4.0.4",
     "diff": "^8.0.3",
     "fast-glob": "^3.3.3",
+    "graphql": "^16.13.1",
     "jscpd": "^4.0.8",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.1",
     "@types/diff": "^7.0.2",
+    "@types/graphql": "^14.2.3",
     "@types/node": "^25.2.0"
   }
 }
