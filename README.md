@@ -196,7 +196,7 @@ The following features are planned to further improve the utility:
 15. **Graph Visualization:** Node-link diagram showing dependency relationships between projects based on leaks.
 16. [x] **Whitelisting:** Ability to mark specific duplicates as "accepted" or "false positive".
 17. **Docker Support:** Official Docker image for easy deployment in containerized environments.
-18. [x] **REST API:** Expose the dashboard server as an API for external tools.
+18. [x] **REST API:** Expose the dashboard server as an API for external tools. Include a GraphQL endpoint (`/api/graphql`) for fine-grained querying.
 19. [x] **Slack/Teams Notifications:** Webhooks to notify teams when new cross-project leaks are detected.
 20. **Monorepo Support:** Specialized optimization and logic for massive monorepos (e.g., Lerna, Nx, Turborepo).
 21. **AI-Powered False Positive Detection:** Utilise LLMs to automatically analyze duplication contexts and automatically suggest hashes for whitelisting if they represent semantically diverse yet structurally similar boilerplate.
@@ -210,4 +210,5 @@ The following features are planned to further improve the utility:
 29. **Cross-Language Clone Detection:** Map abstract syntax trees across different languages (e.g. Java to C#) to identify structural patterns that cross language boundaries.
 30. **Automated Library Extraction:** Automatically generate scaffolding for a shared npm/pip/maven package when cross-project leakage exceeds a specific RefactorScore threshold.
 31. [x] **Advanced Webhooks:** Per-project subscription webhooks to notify distinct teams of leakage specifically impacting their codebases.
-32. **GraphQL API Integration:** Expose DryDock metrics via a GraphQL API to allow complex querying of leakage data by external services.
+32. [x] **GraphQL API Integration:** Expose DryDock metrics via a GraphQL API to allow complex querying of leakage data by external services.
+33. **Multi-Region Distributed Scanning:** Distribute massive repository tokenisation workloads across multiple nodes to handle enterprise-scale source code scanning in parallel.

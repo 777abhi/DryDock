@@ -62,3 +62,8 @@ Constraint: Ensure the worker initialization correctly passes TS-Node execution 
 Decision: Implement Advanced Webhooks (#31) and refactor the HTTP request logic in `src/notifier.ts` to be reusable.
 Reasoning: To support per-project subscription webhooks to notify distinct teams of leakage specifically impacting their codebases.
 Constraint: Ensure that notifications are only sent to specific project webhooks if there's actual leakage for that project.
+
+## 2026-03-13 - [GraphQL API Integration]
+Decision: Integrate a `/api/graphql` endpoint alongside the existing REST API to support fine-grained querying.
+Reasoning: Exposing DryDock metrics via a GraphQL API allows external services to perform complex queries to retrieve exactly the data they need, satisfying roadmap feature #32. We used `graphql` natively to map our strongly typed structures.
+Constraint: Ensure the GraphQL schema directly maps onto existing `DryDockReport` types to avoid redundant type declaration logic.
