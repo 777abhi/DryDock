@@ -47,6 +47,18 @@ Alternatively, you can run the TypeScript file directly:
 npx ts-node src/drydock.ts scan /path/to/project-a /path/to/project-b
 ```
 
+### Using Docker
+
+dry-dock provides an official Docker image to allow running without a local Node.js environment. To scan local repositories, simply mount them as a volume.
+
+```bash
+# Build the image locally
+docker build -t dry-dock .
+
+# Run a scan against mounted directories
+docker run --rm -v "$(pwd)/my-projects:/scan-dir" dry-dock scan /scan-dir/service-a /scan-dir/service-b --formats json
+```
+
 ### Path Examples
 
 You can point to different project folder locations using relative or absolute paths:
@@ -195,7 +207,7 @@ The following features are planned to further improve the utility:
 14. **Auto-Refactor Suggestions:** Generate boilerplate for extracting duplicates into a shared library.
 15. [x] **Graph Visualization:** Node-link diagram showing dependency relationships between projects based on leaks.
 16. [x] **Whitelisting:** Ability to mark specific duplicates as "accepted" or "false positive".
-17. **Docker Support:** Official Docker image for easy deployment in containerized environments.
+17. [x] **Docker Support:** Official Docker image for easy deployment in containerized environments.
 18. [x] **REST API:** Expose the dashboard server as an API for external tools. Include a GraphQL endpoint (`/api/graphql`) for fine-grained querying.
 19. [x] **Slack/Teams Notifications:** Webhooks to notify teams when new cross-project leaks are detected.
 20. [x] **Monorepo Support:** Specialized optimization and logic for massive monorepos (e.g., Lerna, Nx, Turborepo).
@@ -214,3 +226,4 @@ The following features are planned to further improve the utility:
 32. [x] **GraphQL API Integration:** Expose DryDock metrics via a GraphQL API to allow complex querying of leakage data by external services.
 33. **Multi-Region Distributed Scanning:** Distribute massive repository tokenisation workloads across multiple nodes to handle enterprise-scale source code scanning in parallel.
 35. **Code Owner Integration:** Automatically look up `CODEOWNERS` files in identified projects and annotate the leakage reports with the responsible teams.
+36. **CI/CD Native Actions:** Create official GitHub Actions and GitLab CI components wrapping the Docker image to make pipeline integration entirely seamless.
