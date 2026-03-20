@@ -228,4 +228,5 @@ The following features are planned to further improve the utility:
 35. [x] **Code Owner Integration:** Automatically look up `CODEOWNERS` files in identified projects and annotate the leakage reports with the responsible teams.
 36. **CI/CD Native Actions:** Create official GitHub Actions and GitLab CI components wrapping the Docker image to make pipeline integration entirely seamless.
 37. **Distributed Consensus Blacklisting:** Introduce an intelligent p2p voting network across dev machines where developers can globally vote to ban false positive boilerplate hashes.
-38. **Automatic License Inference:** Use ASTs and metadata to automatically infer and append the most likely matching Open Source License to extracted automated libraries.
+38. [x] **Automatic License Inference:** Use ASTs and metadata to automatically infer and append the most likely matching Open Source License to extracted automated libraries.
+39. **Automated Vulnerability Scanning:** Add static analysis to scan duplicated code for known security vulnerabilities before extracting into shared libraries.

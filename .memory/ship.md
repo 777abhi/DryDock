@@ -93,3 +93,8 @@ Constraint: Ensure that `--compare` is present and successfully calculates `tren
 Decision: Introduced `LibraryExtractor` logic to automatically scaffold a basic npm package (`package.json` + code) when cross-project leakage exceeds a specific RefactorScore threshold (`--extract-threshold`).
 Reasoning: We needed to fulfill roadmap feature #30. Providing automatic boilerplate significantly reduces the friction of migrating highly-leaked code into shared libraries. A separate `LibraryExtractor` class was created to keep extraction logic out of the core scanner path.
 Constraint: For testing environments, file path resolution when copying the source file to `index.js` must handle mocked files robustly without crashing.
+
+## 2026-03-21 - [Automatic License Inference]
+Decision: Added `inferLicense` method to `LibraryExtractor` to automatically detect licenses from source code.
+Reasoning: To meet roadmap feature #38, extracted libraries should retain their original open-source license intents instead of hardcoding 'ISC'. This helps avoid compliance issues when consolidating code.
+Constraint: File content must be read dynamically prior to generation of `package.json` to infer the license properly, requiring fallback logic for resolving mocked file paths during testing.
