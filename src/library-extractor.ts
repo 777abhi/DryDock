@@ -3,6 +3,26 @@ import * as path from 'path';
 import { DryDockReport, CrossProjectLeakage } from './types';
 
 export class LibraryExtractor {
+    private inferLicense(content: string): string {
+        const text = content.toLowerCase();
+        if (text.includes('mit license') || text.includes('license: mit')) {
+            return 'MIT';
+        }
+        if (text.includes('apache license') || text.includes('apache 2.0') || text.includes('license: apache')) {
+            return 'Apache-2.0';
+        }
+        if (text.includes('gpl-3.0') || text.includes('gnu general public license v3')) {
+            return 'GPL-3.0';
+        }
+        if (text.includes('bsd 3-clause') || text.includes('bsd-3-clause')) {
+            return 'BSD-3-Clause';
+        }
+        if (text.includes('bsd 2-clause') || text.includes('bsd-2-clause')) {
+            return 'BSD-2-Clause';
+        }
+        return 'ISC';
+    }
+
     public extract(report: DryDockReport, threshold: number, outputDir: string): void {
         const candidates = report.cross_project_leakage.filter(item => item.score >= threshold);
 
@@ -27,6 +47,21 @@ export class LibraryExtractor {
                 fs.mkdirSync(libDir, { recursive: true });
             }
 
+            // Copy source file to index.js
+            const sourceOccurrence = candidate.occurrences[0];
+            const sourceFile = typeof sourceOccurrence === 'string' ? sourceOccurrence : sourceOccurrence.file;
+            const fullSourcePath = path.resolve(process.cwd(), sourceFile);
+
+            let license = 'ISC';
+            if (fs.existsSync(fullSourcePath)) {
+                const content = fs.readFileSync(fullSourcePath, 'utf8');
+                license = this.inferLicense(content);
+                fs.copyFileSync(fullSourcePath, path.join(libDir, 'index.js'));
+            } else if (fs.existsSync(sourceFile)) {
+                const content = fs.readFileSync(sourceFile, 'utf8');
+                license = this.inferLicense(content);
+            }
+
             // Generate package.json
             const packageJson = {
                 name: libName,
@@ -38,19 +73,12 @@ export class LibraryExtractor {
                 },
                 keywords: ['dry-dock', 'shared-library', 'auto-extracted'],
                 author: 'DryDock Auto-Extractor',
-                license: 'ISC'
+                license: license
             };
 
             fs.writeFileSync(path.join(libDir, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-            // Copy source file to index.js
-            const sourceOccurrence = candidate.occurrences[0];
-            const sourceFile = typeof sourceOccurrence === 'string' ? sourceOccurrence : sourceOccurrence.file;
-            const fullSourcePath = path.resolve(process.cwd(), sourceFile);
-
-            if (fs.existsSync(fullSourcePath)) {
-                fs.copyFileSync(fullSourcePath, path.join(libDir, 'index.js'));
-            } else {
+            if (!fs.existsSync(fullSourcePath)) {
                 // If it's a test environment where files might just be mocked and not exist relative to cwd
                 // we can attempt to just use the path as-is if it's absolute
                 if (fs.existsSync(sourceFile)) {
