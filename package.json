@@ -9,7 +9,7 @@
   "scripts": {
     "start": "chmod +x ./setup_real_world_example.sh && ./setup_real_world_example.sh && ts-node src/drydock.ts scan mock-repos/inventory-service mock-repos/order-service --open",
     "dev": "ts-node src/drydock.ts scan . --ignore mock-repos --open",
-    "test": "ts-node tests/test_identifier.ts && ts-node tests/test_scanner.ts && ts-node tests/test_scanner_edge_cases.ts && ts-node tests/test_cli.ts && ts-node tests/test_whitelist.ts && ts-node tests/test_trend.ts && ts-node tests/test_server_port.ts && ts-node tests/test_notifier.ts && ts-node tests/test_project_notifier.ts && ts-node tests/test_language_registry.ts && ts-node tests/test_telemetry.ts && ts-node tests/test_api.ts && ts-node tests/test_graphql.ts && ts-node tests/test_mermaid_export.ts && ts-node tests/test_docker.ts && ts-node tests/test_codeowners.ts && ts-node tests/test_pr_notifier.ts && ts-node tests/test_library_extractor.ts"
+    "test": "ts-node tests/test_identifier.ts && ts-node tests/test_scanner.ts && ts-node tests/test_scanner_edge_cases.ts && ts-node tests/test_cli.ts && ts-node tests/test_whitelist.ts && ts-node tests/test_trend.ts && ts-node tests/test_server_port.ts && ts-node tests/test_notifier.ts && ts-node tests/test_project_notifier.ts && ts-node tests/test_language_registry.ts && ts-node tests/test_telemetry.ts && ts-node tests/test_api.ts && ts-node tests/test_graphql.ts && ts-node tests/test_mermaid_export.ts && ts-node tests/test_docker.ts && ts-node tests/test_codeowners.ts && ts-node tests/test_pr_notifier.ts && ts-node tests/test_library_extractor.ts && ts-node tests/test_pdf_export.ts"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
     "fast-glob": "^3.3.3",
     "graphql": "^16.13.1",
     "jscpd": "^4.0.8",
+    "pdfkit": "^0.18.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
@@ -36,6 +37,7 @@
     "@playwright/test": "^1.58.1",
     "@types/diff": "^7.0.2",
     "@types/graphql": "^14.2.3",
-    "@types/node": "^25.2.0"
+    "@types/node": "^25.2.0",
+    "@types/pdfkit": "^0.17.5"
   }
 }

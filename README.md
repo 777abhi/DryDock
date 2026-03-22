@@ -85,7 +85,7 @@ You can point to different project folder locations using relative or absolute p
 | `--open` | Launch the interactive dashboard after scanning. |
 | `--min-lines <n>` | Minimum number of lines for a block to be considered a duplicate (default: 0). |
 | `--fail` | Exit with code 1 if cross-project leaks are detected (useful for CI/CD). |
-| `--formats <list>` | Comma-separated list of output formats: `json`, `csv`, `junit`, `html` (default: `json`). |
+| `--formats <list>` | Comma-separated list of output formats: `json`, `csv`, `junit`, `html`, `pdf`, `mermaid` (default: `json`). |
 | `--whitelist <file>` | Path to a file containing duplicate hashes to ignore (defaults to `.drydockwhitelist`). |
 | `--compare <file>` | Path to a previous `drydock-report.json` to perform a trend analysis on new, resolved, and remaining leaks. |
 | `--webhook <url>` | URL to send a JSON POST request with the scan summary (e.g., for Slack/Teams integration). |
@@ -216,7 +216,7 @@ The following features are planned to further improve the utility:
 22. [x] **Trend Visualisation in Dashboard:** Add historical trend graphs to the dashboard to visualise RefactorScore changes over time.
 23. [x] **Code Smells & Complexity Integration:** Incorporate Cyclomatic Complexity metrics and code smell analysis directly into the Code Inspector to guide deeper refactoring.
 24. [x] **Server Test Reliability:** Introduce random or dynamically allocated ports for local testing to avoid port collisions when testing the interactive dashboard and its APIs.
-25. **Export to PDF:** Allow exporting the current dashboard and leakage statistics to a PDF format to send reports directly to management or executives without requiring server access.
+25. [x] **Export to PDF:** Allow exporting the current dashboard and leakage statistics to a PDF format to send reports directly to management or executives without requiring server access.
 26. [x] **Automated Actionable PR Comments:** Automatically post comments on Pull Requests for any new structural clones introduced in a commit.
 27. **Semantic Refactoring Prompts:** Generate refactoring instructions for developers based on the structural diff to make consolidating code easier.
 28. [x] **Real-time Code Quality Telemetry:** Stream duplication data continuously to Datadog or Prometheus (via `/metrics` endpoint).

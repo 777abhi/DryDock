@@ -8,7 +8,7 @@ import { scanFile } from './scanner';
 import { getIgnorePatterns } from './utils';
 import { getGitInfo } from './git-utils';
 import { DryDockReport, InternalDuplicate, CrossProjectLeakage, Occurrence } from './types';
-import { exportToCSV, exportToJUnit, exportToHTML, exportToMermaid } from './reporter';
+import { exportToCSV, exportToJUnit, exportToHTML, exportToMermaid, exportToPDF } from './reporter';
 import { getCodeOwners } from './codeowners';
 import { analyzeTrend, TrendResult } from './trend';
 import { WebhookNotifier, ProjectWebhookNotifier, GitHubPRNotifier } from './notifier';
@@ -813,6 +813,10 @@ async function main() {
                     case 'mermaid':
                         fs.writeFileSync('drydock-report.mmd', exportToMermaid(currentReport));
                         console.log('Report saved to drydock-report.mmd');
+                        break;
+                    case 'pdf':
+                        await exportToPDF(currentReport, 'drydock-report.pdf');
+                        console.log('Report saved to drydock-report.pdf');
                         break;
                     default:
                         console.warn(`Unknown format: ${format}`);

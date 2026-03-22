@@ -103,3 +103,8 @@ Constraint: File content must be read dynamically prior to generation of `packag
 Decision: Integrated `scanForVulnerabilities` method within `LibraryExtractor` to prevent extraction of known insecure code.
 Reasoning: To meet roadmap feature #39, code shouldn't be automatically distributed as a shared package if it contains simple known vulnerabilities like `eval` or hardcoded secrets. We shifted file content loading earlier in the loop to support this.
 Constraint: Must ensure file reading logic dynamically resolves the mocked path correctly during testing so the static analysis can examine the proper file content without breaking extraction flow.
+
+## 2026-03-23 - [Export to PDF]
+Decision: Used `pdfkit` to generate PDF reports directly within the CLI rather than relying on heavy headless browser rendering (like Puppeteer) of the HTML dashboard.
+Reasoning: We needed to fulfill roadmap feature #25. Generating PDFs natively via `pdfkit` ensures the CLI remains fast, dependency-light (avoids downloading Chromium), and doesn't require server access or an active dashboard instance to produce shareable executive reports.
+Constraint: Ensure the PDF generation logic is abstracted into `src/reporter.ts` to keep `src/drydock.ts` focused on orchestration.
