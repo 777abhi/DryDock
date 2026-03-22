@@ -1,4 +1,6 @@
 import { DryDockReport, InternalDuplicate, CrossProjectLeakage } from './types';
+import * as fs from 'fs';
+import PDFDocument from 'pdfkit';
 
 export function exportToCSV(report: DryDockReport): string {
     const headers = ['Type', 'Hash', 'Lines', 'Frequency', 'Score', 'Spread', 'Projects', 'Occurrences'];
@@ -133,4 +135,77 @@ export function exportToMermaid(report: DryDockReport): string {
     });
 
     return lines.join('\n');
+}
+
+export function exportToPDF(report: DryDockReport, outputPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ margin: 50 });
+            const stream = fs.createWriteStream(outputPath);
+
+            doc.pipe(stream);
+
+            // Title
+            doc.fontSize(24).text('dry-dock Analysis Report', { align: 'center' });
+            doc.moveDown(2);
+
+            // Summary
+            doc.fontSize(18).text('Summary');
+            doc.moveDown();
+            doc.fontSize(12).text(`Total Cross-Project Leaks: ${report.cross_project_leakage.length}`);
+            doc.text(`Total Internal Duplicates: ${report.internal_duplicates.length}`);
+            doc.moveDown(2);
+
+            // Cross-Project Leakage
+            if (report.cross_project_leakage.length > 0) {
+                doc.fontSize(18).fillColor('red').text('Cross-Project Leakage').fillColor('black');
+                doc.moveDown();
+
+                report.cross_project_leakage.forEach((leak, index) => {
+                    doc.fontSize(14).text(`Leak #${index + 1} (Hash: ${leak.hash.slice(0, 8)}...)`);
+                    doc.fontSize(10).text(`Score: ${leak.score.toFixed(2)} | Lines: ${leak.lines} | Complexity: ${leak.complexity} | Spread: ${leak.spread} | Frequency: ${leak.frequency}`);
+                    doc.text(`Projects: ${leak.projects.join(', ')}`);
+                    doc.moveDown(0.5);
+                    doc.text('Occurrences:');
+                    leak.occurrences.forEach(occ => {
+                        const author = occ.author ? ` (${occ.author})` : '';
+                        const date = occ.date ? ` on ${occ.date}` : '';
+                        doc.text(`  - ${occ.file} [${occ.project}]${author}${date}`);
+                    });
+                    doc.moveDown();
+                });
+            }
+
+            // Internal Duplicates
+            if (report.internal_duplicates.length > 0) {
+                doc.addPage();
+                doc.fontSize(18).fillColor('orange').text('Internal Duplicates').fillColor('black');
+                doc.moveDown();
+
+                report.internal_duplicates.forEach((dup, index) => {
+                    doc.fontSize(14).text(`Duplicate #${index + 1} (Hash: ${dup.hash.slice(0, 8)}...)`);
+                    doc.fontSize(10).text(`Score: ${dup.score.toFixed(2)} | Lines: ${dup.lines} | Complexity: ${dup.complexity} | Frequency: ${dup.frequency}`);
+                    doc.text(`Project: ${dup.project}`);
+                    doc.moveDown(0.5);
+                    doc.text('Occurrences:');
+                    dup.occurrences.forEach(file => {
+                        doc.text(`  - ${file}`);
+                    });
+                    doc.moveDown();
+                });
+            }
+
+            doc.end();
+
+            stream.on('finish', () => {
+                resolve();
+            });
+
+            stream.on('error', (err) => {
+                reject(err);
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
